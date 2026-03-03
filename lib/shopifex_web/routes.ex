@@ -33,6 +33,7 @@ defmodule ShopifexWeb.Routes do
         plug(:put_root_layout, html: {ShopifexWeb.Layouts, :root})
         plug(:protect_from_forgery)
         plug(:put_secure_browser_headers)
+
         plug(Shopifex.Plug.LoadInIframe)
       end
 
@@ -106,7 +107,7 @@ defmodule ShopifexWeb.Routes do
   defmacro auth_routes(controller \\ ShopifexWeb.AuthController) do
     quote do
       scope "/auth" do
-        pipe_through([:shopifex_browser, :shopify_session])
+        pipe_through([:shopifex_browser, :shopify_session, :shopify_embedded])
         get("/", unquote(controller), :auth)
       end
 
