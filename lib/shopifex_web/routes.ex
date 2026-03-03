@@ -32,8 +32,8 @@ defmodule ShopifexWeb.Routes do
         plug(:fetch_live_flash)
         plug(:protect_from_forgery)
         plug(:put_secure_browser_headers)
-
         plug(Shopifex.Plug.LoadInIframe)
+        plug(Shopifex.Plug.SetCSPHeader)
       end
 
       pipeline :shopify_session do
