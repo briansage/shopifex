@@ -65,9 +65,46 @@ defmodule Shopifex.Plug.ShopifySession do
     install_url =
       "https://#{shop_url}/admin/oauth/authorize?client_id=#{Application.fetch_env!(:shopifex, :api_key)}&scope=#{Application.fetch_env!(:shopifex, :scopes)}&redirect_uri=#{Application.fetch_env!(:shopifex, :redirect_uri)}"
 
-    conn
-    |> redirect(external: install_url)
-    |> halt()
+    case conn.params do
+      %{"embedded" => "1", "host" => _host} ->
+        # The request is being rendered inside the Shopify admin iframe.
+        # A bare 302 redirect cannot navigate the top-level window from inside
+        # an iframe — we must use App Bridge to escape the iframe first.
+        api_key = Application.fetch_env!(:shopifex, :api_key)
+
+        conn
+        |> put_resp_content_type("text/html")
+        |> send_resp(200, iframe_escape_html(install_url, api_key))
+        |> halt()
+
+      _ ->
+        # Not embedded — a normal top-level redirect is safe.
+        conn
+        |> redirect(external: install_url)
+        |> halt()
+    end
+  end
+
+  # Renders a minimal HTML page that uses App Bridge to escape the Shopify
+  # admin iframe and redirect the top-level window to the OAuth grant screen.
+  defp iframe_escape_html(redirect_url, api_key) do
+    """
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="utf-8" />
+        <meta name="shopify-api-key" content="#{api_key}" />
+      </head>
+      <body>
+        <script>
+          document.addEventListener("DOMContentLoaded", function() {
+            window.top.location.href = "#{redirect_url}";
+          });
+        </script>
+        <p>Redirecting to install&hellip;</p>
+      </body>
+    </html>
+    """
   end
 
   defp respond_invalid(%Plug.Conn{private: %{phoenix_format: "json"}} = conn) do
