@@ -31,7 +31,14 @@ defmodule ShopifexWeb.Routes do
         plug(:fetch_session)
         plug(:fetch_live_flash)
         plug(:protect_from_forgery)
-        plug(:put_secure_browser_headers)
+
+        plug(:put_secure_browser_headers, %{
+          "content-security-policy" =>
+            "default-src 'self'; " <>
+              "script-src 'self' https://cdn.shopify.com; " <>
+              "connect-src 'self' https://cdn.shopify.com;"
+        })
+
         plug(Shopifex.Plug.LoadInIframe)
         plug(Shopifex.Plug.SetCSPHeader)
       end
